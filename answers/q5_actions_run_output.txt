@@ -1,0 +1,26 @@
+GitHub Actions Run — CI workflow (push to main, commit c721428)
+https://github.com/fansclubcoding/ci-cd-final-project/actions/runs/35424574248
+Job: build — SUCCESS
+  ✔ Set up job
+  ✔ Check out repository code
+  ✔ Set up Python 3.9
+  ✔ Install dependencies
+  ✔ Lint with flake8
+  ✔ Run unit tests with nose
+  ✔ Post Check out repository code
+  ✔ Complete job
+
+Lint with flake8:
+  flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+  0
+  flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  0
+
+Run unit tests with nose:
+  nosetests -v --with-spec --spec-color
+  test_health (tests.test_routes.CounterTest) ... ok
+  test_index (tests.test_routes.CounterTest) ... ok
+  ...
+  Ran 9 tests in 0.236s
+
+  OK

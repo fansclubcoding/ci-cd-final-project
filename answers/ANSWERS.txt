@@ -1,0 +1,48 @@
+================================================================
+JAWABAN FINAL PROJECT - CI/CD TOOLS AND PRACTICES (20 poin)
+Repo   : https://github.com/fansclubcoding/ci-cd-final-project
+Branch : main | Commit jawaban: lihat log terakhir
+================================================================
+
+## Q1 (2p) - URL README.md dengan project name
+https://github.com/fansclubcoding/ci-cd-final-project/blob/main/README.md
+(Isi: "Project name: ci-cd-final-project" di bawah judul template.)
+
+## Q2 (4p) - URL .github/workflows/workflow.yml
+https://github.com/fansclubcoding/ci-cd-final-project/blob/main/.github/workflows/workflow.yml
+(Kode step "Lint with flake8" + "Run unit tests with nose" ada di file;
+salin snippet kedua step itu ke kolom jawaban bila diminta teks.)
+
+## Q3 (4p) - URL .tekton/tasks.yml
+https://github.com/fansclubcoding/ci-cd-final-project/blob/main/.tekton/tasks.yml
+(Task "cleanup" + Task "nose"; bonus Task "deploy". Salin snippet
+kedua task ke kolom jawaban bila diminta teks.)
+
+## Q4 (2p) - Screenshot detail PVC
+Upload file bernama: oc-pipelines-console-pvc-details
+Cara: jalankan RUNBOOK-OPENSHIFT.txt langkah 1, lalu di OpenShift Console:
+Storage -> PersistentVolumeClaims -> oc-pipelines-source-pvc -> screenshot.
+
+## Q5 (2p) - Text output GitHub Actions sukses
+Salin isi file: answers/q5_actions_run_output.txt
+(Referensi log penuh: answers/q5_full_actions_run.log)
+Run asli: https://github.com/fansclubcoding/ci-cd-final-project/actions/runs/35424574248
+
+## Q6 (2p) - Screenshot Pipeline oc-pipelines-oc-final
+Cara: jalankan RUNBOOK-OPENSHIFT.txt, lalu OpenShift Console ->
+Pipelines -> oc-pipelines-oc-final -> screenshot halaman detail.
+
+## Q7 (2p) - Screenshot pipeline sukses (hijau)
+Upload file bernama: oc-pipelines-oc-green
+Cara: setelah pipeline run Succeeded, Console -> Pipelines ->
+PipelineRuns -> run hijau terbaru -> screenshot.
+
+## Q8 (2p) - Text log aplikasi OpenShift
+Cara: oc logs deployment/cd-final  (atau Console -> Workloads ->
+Deployments -> cd-final -> Pods -> Logs) -> salin teks lognya.
+
+## CATATAN WORKFLOW
+runs-on: [self-hosted, sh-final] dipakai karena Actions hosted runner
+diblokir billing pada akun ini. Setelah billing beres, boleh kembali
+ke runs-on: ubuntu-latest (ubah satu baris). Run hijau terverifikasi:
+run 35424574248, 9/9 unit test OK, flake8 0 temuan.

@@ -1,0 +1,52 @@
+================================================================
+RUNBOOK OPENSHIFT - FINAL PROJECT CI/CD (untuk Q4, Q6, Q7, Q8)
+Jalankan di lab Coursera (butuh cluster OpenShift lab).
+================================================================
+
+cd ~/ci-cd-final-project          # atau folder repo di lab
+
+# 0) (sekali) beri SA pipeline hak admin di project — untuk deploy:
+oc create rolebinding pipeline-admin --clusterrole=admin \
+  --serviceaccount=$(oc project -q):pipeline -n $(oc project -q) || true
+
+# 1) PVC (Q4: Console -> Storage -> PVC -> oc-pipelines-source-pvc -> screenshot
+#    simpan sebagai oc-pipelines-console-pvc-details):
+oc apply -f - <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oc-pipelines-source-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: { requests: { storage: 1Gi } }
+EOF
+
+# 2) Pasang task + pipeline dari repo:
+oc apply -f .tekton/tasks.yml
+oc apply -f .tekton/pipeline.yaml
+
+# 3) Jalankan pipeline:
+tkn pipeline start oc-pipelines-oc-final \
+  -w name=pipeline-shared-data,claimName=oc-pipelines-source-pvc \
+  -p git-url=https://github.com/fansclubcoding/ci-cd-final-project.git \
+  -p image-name=image-registry.openshift-image-registry.svc:5000/$(oc project -q)/cd-final:latest \
+  --showlog
+# (alternatif GUI: Console -> Pipelines -> oc-pipelines-oc-final -> Start)
+
+# 4) Tunggu Succeeded (3-6 menit).
+
+# 5) Q6: Console -> Pipelines -> oc-pipelines-oc-final -> screenshot detail.
+
+# 6) Q7: Console -> Pipelines -> PipelineRuns -> run hijau terbaru ->
+#    screenshot, simpan sebagai oc-pipelines-oc-green.
+
+# 7) Q8: log aplikasi (salin teksnya):
+oc logs deployment/cd-final
+#    atau Console -> Workloads -> Deployments -> cd-final -> Pods -> Logs
+
+## TROUBLESHOOT
+- Deploy task gagal 403: jalankan ulang langkah 0, lalu retry pipelinerun:
+  tkn pipelinerun retry $(tkn pipelinerun ls -n 1 -o jsonpath='{.items[0].metadata.name}')
+- Buildah gagal push registry: pastikan project aktif benar dan
+  TLSVERIFY false (sudah di pipeline.yaml).
+- tkn tidak ada: pakai GUI console untuk start, hasilnya sama.
