@@ -1,7 +1,8 @@
 ================================================================
 JAWABAN FINAL PROJECT - CI/CD TOOLS AND PRACTICES (20 poin)
 Repo   : https://github.com/fansclubcoding/ci-cd-final-project
-Branch : main | Commit jawaban: lihat log terakhir
+Branch : main | Commit jawaban: 37ee5ef (Align CI workflow and
+         Tekton manifests with lab spec)
 ================================================================
 
 ## Q1 (2p) - URL README.md dengan project name
@@ -10,39 +11,70 @@ https://github.com/fansclubcoding/ci-cd-final-project/blob/main/README.md
 
 ## Q2 (4p) - URL .github/workflows/workflow.yml
 https://github.com/fansclubcoding/ci-cd-final-project/blob/main/.github/workflows/workflow.yml
-(Kode step "Lint with flake8" + "Run unit tests with nose" ada di file;
-salin snippet kedua step itu ke kolom jawaban bila diminta teks.)
+Step "Lint with flake8" (2 command) dan step "Run unit tests with nose"
+sudah persis sesuai lab. Salin snippet berikut bila diminta teks:
+
+  - name: Lint with flake8
+    run: |
+      flake8 service --count --select=E9,F63,F7,F82 --show-source --statistics
+      flake8 service --count --max-complexity=10 --max-line-length=127 --statistics
+
+  - name: Run unit tests with nose
+    run: |
+      nosetests -v --with-spec --spec-color --with-coverage --cover-package=app
 
 ## Q3 (4p) - URL .tekton/tasks.yml
 https://github.com/fansclubcoding/ci-cd-final-project/blob/main/.tekton/tasks.yml
-(Task "cleanup" + Task "nose"; bonus Task "deploy". Salin snippet
-kedua task ke kolom jawaban bila diminta teks.)
+Berisi 3 Task: cleanup, flake8, nose. Salin snippet Task cleanup dan
+Task nose berikut bila diminta teks:
+
+  # Task cleanup — step "remove", image alpine:3, script rm -rf
+  # Task nose    — step "nosetests", image python:3.9-slim,
+  #                args default -v --with-spec --spec-color
+  #                --with-coverage --cover-package=app
 
 ## Q4 (2p) - Screenshot detail PVC
-Upload file bernama: oc-pipelines-console-pvc-details
-Cara: jalankan RUNBOOK-OPENSHIFT.txt langkah 1, lalu di OpenShift Console:
-Storage -> PersistentVolumeClaims -> oc-pipelines-source-pvc -> screenshot.
+Upload file bernama: oc-pipelines-console-pvc-details.png
+Cara: jalankan RUNBOOK-OPENSHIFT.txt langkah 1 (oc apply -f .tekton/pvc.yaml),
+lalu di OpenShift Console:
+Storage -> PersistentVolumeClaims -> oc-lab-pvc -> screenshot.
+(PVC: oc-lab-pvc, ReadWriteOnce, storageClassName skills-network-learner, 1Gi)
 
 ## Q5 (2p) - Text output GitHub Actions sukses
 Salin isi file: answers/q5_actions_run_output.txt
 (Referensi log penuh: answers/q5_full_actions_run.log)
-Run asli: https://github.com/fansclubcoding/ci-cd-final-project/actions/runs/35424574248
+Run hijau: https://github.com/fansclubcoding/ci-cd-final-project/actions/runs/35446734656
+Commit: 37ee5ef | Semua step ✔ | flake8 0 temuan | 9 unit test OK.
 
 ## Q6 (2p) - Screenshot Pipeline oc-pipelines-oc-final
+Upload file bernama: oc-pipelines-oc-final.png
 Cara: jalankan RUNBOOK-OPENSHIFT.txt, lalu OpenShift Console ->
 Pipelines -> oc-pipelines-oc-final -> screenshot halaman detail.
+(Pipeline berisi 6 step: cleanup, git-clone, flake8, nose, buildah, deploy.)
 
 ## Q7 (2p) - Screenshot pipeline sukses (hijau)
-Upload file bernama: oc-pipelines-oc-green
+Upload file bernama: oc-pipelines-oc-green.png
 Cara: setelah pipeline run Succeeded, Console -> Pipelines ->
 PipelineRuns -> run hijau terbaru -> screenshot.
 
 ## Q8 (2p) - Text log aplikasi OpenShift
 Cara: oc logs deployment/cd-final  (atau Console -> Workloads ->
-Deployments -> cd-final -> Pods -> Logs) -> salin teks lognya.
+Deployments -> cd-final -> Pods -> Logs) -> salin teksnya.
+Log harus memuat banner:
+  ******************  S E R V I C E   R U N N I N G  ******************
+Simpan sebagai oc-pipeline-app-logs (opsi 1) / oc-pipeline-app-logs.png (opsi 2).
 
 ## CATATAN WORKFLOW
-runs-on: [self-hosted, sh-final] dipakai karena Actions hosted runner
-diblokir billing pada akun ini. Setelah billing beres, boleh kembali
-ke runs-on: ubuntu-latest (ubah satu baris). Run hijau terverifikasi:
-run 35424574248, 9/9 unit test OK, flake8 0 temuan.
+runs-on: [self-hosted] dipakai karena Actions hosted runner diblokir
+billing pada akun ini; job tetap berjalan di dalam container lab-exact
+python:3.9-slim dan semua baris perintah sama persis dengan teks lab.
+Setelah billing beres, cukup ubah satu baris runs-on kembali ke
+ubuntu-latest. Run hijau terverifikasi:
+run 35446734656, 9/9 unit test OK, flake8 0 temuan.
+
+## CATATAN TEKTON
+Pipeline divalidasi lokal pada cluster k3s (Tekton Pipelines):
+run oc-pipelines-oc-final-run-rq4dn -> Succeeded (cleanup, git-clone,
+flake8, nose semua hijau; nose 9 test OK, flake8 0). Task buildah dan
+deploy memakai ClusterTask (buildah, openshift-client) yang hanya ada
+di cluster OpenShift lab — jalankan RUNBOOK-OPENSHIFT.txt di lab.

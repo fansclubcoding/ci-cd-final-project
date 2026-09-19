@@ -1,0 +1,80 @@
+================================================================
+cicd-github-validate — GitHub Actions workflow validation
+Repo   : https://github.com/fansclubcoding/ci-cd-final-project
+Run    : https://github.com/fansclubcoding/ci-cd-final-project/actions/runs/35446734656
+Commit : 37ee5ef (Align CI workflow and Tekton manifests with lab spec)
+Result : SUCCESS — every step passed
+================================================================
+
+$ gh run list
+completed	success	Align CI workflow and Tekton manifests with lab spec	CI workflow	main	push	35446734656	2m49s	2026-09-19T13:46:09Z
+completed	success	Add submission answers and OpenShift runbook	CI workflow	main	push	35424769708	1m27s	2026-09-19T05:44:45Z
+completed	success	Point uv at relocated venv	CI workflow	main	push	35424574248	1m18s	2026-09-19T05:40:22Z
+
+$ gh run view 35446734656
+✓ main CI workflow · 35446734656
+Triggered via push about 3 minutes ago
+
+JOBS
+✓ build in 2m36s (ID 105906841969)
+
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Checkout
+  ✓ Install dependencies
+  ✓ Lint with flake8
+  ✓ Run unit tests with nose
+  ✓ Post Checkout
+  ✓ Stop containers
+  ✓ Complete job
+
+View this run on GitHub: https://github.com/fansclubcoding/ci-cd-final-project/actions/runs/35446734656
+
+$ gh run view 35446734656 --log  (excerpts)
+
+--- Lint with flake8 ---
+# stop the build if there are Python syntax errors or undefined names
+flake8 service --count --select=E9,F63,F7,F82 --show-source --statistics
+# exit-zero treats all errors as warnings
+flake8 service --count --max-complexity=10 --max-line-length=127 --statistics
+shell: sh -e {0}
+0
+0
+
+--- Run unit tests with nose ---
+nosetests -v --with-spec --spec-color --with-coverage --cover-package=app
+shell: sh -e {0}
+
+ REST API Server Tests
+- It should Create a counter
+- It should not Create a duplicate counter
+- It should Delete a counter
+- It should be healthy
+- It should call the index call
+- It should List counters
+- It should Read a counter
+- It should Update a counter
+- It should not Update a missing counter
+
+Name                             Stmts   Miss  Cover   Missing
+--------------------------------------------------------------
+service/__init__.py                  8      0   100%
+service/common/log_handlers.py      11      1    91%   37
+service/common/status.py            45      0   100%
+service/routes.py                   48      0   100%
+--------------------------------------------------------------
+TOTAL                              112      1   99%
+----------------------------------------------------------------------
+Ran 9 tests in 0.233s
+
+OK
+
+================================================================
+NOTE (deviation from lab spec):
+runs-on: [self-hosted] is used instead of ubuntu-latest because the
+GitHub-hosted runners are billing-blocked on this account (hosted
+runs fail with zero steps executed). The job still runs inside the
+lab-specified container: python:3.9-slim. Every command line matches
+the lab text exactly. To return to hosted runners, change the single
+runs-on line back to ubuntu-latest.
+================================================================
