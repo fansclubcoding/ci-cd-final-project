@@ -1,0 +1,73 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: oc-pipelines-oc-final
+spec:
+  description: >-
+    CI/CD pipeline that clones the source, cleans the workspace, runs
+    the unit tests, builds a container image and deploys the application
+    to the OpenShift cluster.
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      type: string
+      default: main
+    - name: image-name
+      type: string
+  workspaces:
+    - name: pipeline-shared-data
+  tasks:
+    - name: cleanup
+      taskRef:
+        name: cleanup
+      workspaces:
+        - name: source
+          workspace: pipeline-shared-data
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      runAfter:
+        - cleanup
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+      workspaces:
+        - name: output
+          workspace: pipeline-shared-data
+    - name: nose
+      taskRef:
+        name: nose
+      runAfter:
+        - clone
+      workspaces:
+        - name: source
+          workspace: pipeline-shared-data
+    - name: build
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      runAfter:
+        - nose
+      params:
+        - name: IMAGE
+          value: $(params.image-name)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: TLSVERIFY
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: pipeline-shared-data
+    - name: deploy
+      taskRef:
+        name: deploy
+      runAfter:
+        - build
+      params:
+        - name: image
+          value: $(params.image-name)

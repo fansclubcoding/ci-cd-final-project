@@ -1,0 +1,65 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: cleanup
+spec:
+  description: >-
+    This task removes the contents of the shared workspace so every
+    pipeline run starts from a clean state.
+  workspaces:
+    - name: source
+  steps:
+    - name: remove
+      image: alpine:3
+      command: ["rm", "-rf"]
+      args:
+        - "$(workspaces.source.path)/*"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: nose
+spec:
+  description: >-
+    This task installs the Python dependencies and runs the unit tests
+    with nose.
+  workspaces:
+    - name: source
+  steps:
+    - name: install-dependencies
+      image: python:3.9-slim
+      script: |
+        #!/usr/bin/env bash
+        cd $(workspaces.source.path)
+        python -m pip install --upgrade pip wheel "setuptools<81"
+        pip install -r requirements.txt
+    - name: run-unit-tests
+      image: python:3.9-slim
+      script: |
+        #!/usr/bin/env bash
+        cd $(workspaces.source.path)
+        nosetests -v --with-spec --spec-color
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: deploy
+spec:
+  description: >-
+    This task deploys the freshly built image to the OpenShift cluster
+    and exposes it through a route.
+  params:
+    - name: image
+      type: string
+    - name: app-name
+      type: string
+      default: cd-final
+  steps:
+    - name: deploy-application
+      image: quay.io/openshift/origin-cli:latest
+      script: |
+        #!/usr/bin/env bash
+        oc new-app --name=$(params.app-name) --image=$(params.image) || true
+        oc rollout status deployment/$(params.app-name) --timeout=300s
+        oc expose service/$(params.app-name) || true
