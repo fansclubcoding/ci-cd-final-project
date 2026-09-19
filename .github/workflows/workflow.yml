@@ -2,37 +2,31 @@ name: CI workflow
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
-    runs-on: [self-hosted, sh-final]
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
+    runs-on: [self-hosted]
+    container: python:3.9-slim
 
-      - name: Set up Python 3.9
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          uv python install 3.9
-          uv venv "$RUNNER_TEMP/ci-venv" --python 3.9
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          echo "$RUNNER_TEMP/ci-venv/bin" >> "$GITHUB_PATH"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
-          uv pip install --python "$RUNNER_TEMP/ci-venv/bin/python" --upgrade pip wheel "setuptools<81"
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Lint with flake8
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 service --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings
+          flake8 service --count --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Run unit tests with nose
         run: |
-          nosetests -v --with-spec --spec-color
+          nosetests -v --with-spec --spec-color --with-coverage --cover-package=app

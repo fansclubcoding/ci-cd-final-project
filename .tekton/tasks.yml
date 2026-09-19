@@ -4,62 +4,86 @@ kind: Task
 metadata:
   name: cleanup
 spec:
-  description: >-
-    This task removes the contents of the shared workspace so every
-    pipeline run starts from a clean state.
+  description: This task will clean up a workspace by deleting all of the files.
   workspaces:
     - name: source
   steps:
     - name: remove
       image: alpine:3
-      command: ["rm", "-rf"]
-      args:
-        - "$(workspaces.source.path)/*"
+      env:
+        - name: WORKSPACE_SOURCE_PATH
+          value: $(workspaces.source.path)
+      workingDir: $(workspaces.source.path)
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        echo "Removing all files from ${WORKSPACE_SOURCE_PATH} ..."
+        # Delete any existing contents of the directory if it exists.
+        #
+        # We don't just "rm -rf ${WORKSPACE_SOURCE_PATH}" because ${WORKSPACE_SOURCE_PATH} might be "/"
+        # or the root of a mounted volume.
+        if [ -d "${WORKSPACE_SOURCE_PATH}" ] ; then
+          # Delete non-hidden files and directories
+          rm -rf "${WORKSPACE_SOURCE_PATH:?}"/*
+          # Delete files and directories starting with . but excluding ..
+          rm -rf "${WORKSPACE_SOURCE_PATH}"/.[!.]*
+          # Delete files and directories starting with .. plus any other character
+          rm -rf "${WORKSPACE_SOURCE_PATH}"/..?*
+        fi
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: flake8
+spec:
+  description: This task will lint the service using flake8.
+  workspaces:
+    - name: source
+  params:
+    - name: image
+      description: The image to use for the lint step.
+      type: string
+      default: python:3.9-slim
+    - name: args
+      description: Arguments to pass to flake8.
+      type: string
+      default: "--count --select=E9,F63,F7,F82 --show-source --statistics --max-complexity=10 --max-line-length=127 service"
+  steps:
+    - name: lint
+      image: $(params.image)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env bash
+        set -e
+        python -m pip install --upgrade pip wheel
+        pip install flake8==4.0.1
+        flake8 $(params.args)
+
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: nose
 spec:
-  description: >-
-    This task installs the Python dependencies and runs the unit tests
-    with nose.
+  description: This task will run the unit tests using nose.
   workspaces:
     - name: source
+  params:
+    - name: args
+      description: Arguments to pass to nose.
+      type: string
+      default: "-v --with-spec --spec-color --with-coverage --cover-package=app"
   steps:
-    - name: install-dependencies
+    - name: nosetests
       image: python:3.9-slim
+      workingDir: $(workspaces.source.path)
       script: |
         #!/usr/bin/env bash
-        cd $(workspaces.source.path)
+        set -e
         python -m pip install --upgrade pip wheel "setuptools<81"
         pip install -r requirements.txt
-    - name: run-unit-tests
-      image: python:3.9-slim
-      script: |
-        #!/usr/bin/env bash
-        cd $(workspaces.source.path)
-        nosetests -v --with-spec --spec-color
----
-apiVersion: tekton.dev/v1beta1
-kind: Task
-metadata:
-  name: deploy
-spec:
-  description: >-
-    This task deploys the freshly built image to the OpenShift cluster
-    and exposes it through a route.
-  params:
-    - name: image
-      type: string
-    - name: app-name
-      type: string
-      default: cd-final
-  steps:
-    - name: deploy-application
-      image: quay.io/openshift/origin-cli:latest
-      script: |
-        #!/usr/bin/env bash
-        oc new-app --name=$(params.app-name) --image=$(params.image) || true
-        oc rollout status deployment/$(params.app-name) --timeout=300s
-        oc expose service/$(params.app-name) || true
+        nosetests $(params.args)
